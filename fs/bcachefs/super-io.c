@@ -17,6 +17,7 @@
 #include "super-io.h"
 #include "super.h"
 #include "vstructs.h"
+#include "zone.h"
 
 #include <linux/backing-dev.h>
 #include <linux/sort.h>
