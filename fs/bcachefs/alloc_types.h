@@ -48,6 +48,7 @@ struct open_bucket {
 	unsigned		on_partial_list:1;
 	int			alloc_reserve:3;
 
+	unsigned		bucket_size;
 	unsigned		sectors_free;
 	u8			dev;
 	u8			gen;

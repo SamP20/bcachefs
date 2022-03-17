@@ -23,6 +23,7 @@
 #include "super.h"
 #include "super-io.h"
 #include "util.h"
+#include "zone.h"
 
 #include <trace/events/bcachefs.h>
 
@@ -1004,6 +1005,8 @@ static const char *extent_ptr_invalid(const struct bch_fs *c,
 	struct bkey_ptrs_c ptrs = bch2_bkey_ptrs_c(k);
 	const struct bch_extent_ptr *ptr2;
 	struct bch_dev *ca;
+	u32 bucket_offset;
+	u64 b;
 
 	if (!bch2_dev_exists2(c, ptr->dev))
 		return "pointer to invalid device";
@@ -1016,14 +1019,15 @@ static const char *extent_ptr_invalid(const struct bch_fs *c,
 		if (ptr != ptr2 && ptr->dev == ptr2->dev)
 			return "multiple pointers to same device";
 
-	if (ptr->offset + size_ondisk > bucket_to_sector(ca, ca->mi.nbuckets))
+	b = sector_to_bucket_and_offset(ca, ptr->offset, &bucket_offset);
+
+	if (b >= ca->mi.nbuckets)
 		return "offset past end of device";
 
-	if (ptr->offset < bucket_to_sector(ca, ca->mi.first_bucket))
+	if (b < ca->mi.first_bucket)
 		return "offset before first bucket";
 
-	if (bucket_remainder(ca, ptr->offset) +
-	    size_ondisk > ca->mi.bucket_size)
+	if (bucket_offset + size_ondisk > bucket_capacity(ca, b))
 		return "spans multiple buckets";
 
 	return NULL;

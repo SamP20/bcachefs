@@ -126,20 +126,24 @@ static int walk_buckets_to_copygc(struct bch_fs *c)
 			   BTREE_ITER_PREFETCH, k, ret) {
 		struct bch_dev *ca = bch_dev_bkey_exists(c, iter.pos.inode);
 		struct copygc_heap_entry e;
+		unsigned bucket_size;
 
 		u = bch2_alloc_unpack(k);
 
 		if (u.data_type != BCH_DATA_user ||
-		    u.dirty_sectors >= ca->mi.bucket_size ||
 		    bch2_bucket_is_open(c, iter.pos.inode, iter.pos.offset))
+			continue;
+
+		bucket_size = bucket_capacity(ca, k.k->p.offset);
+
+		if (u.dirty_sectors >= bucket_size)
 			continue;
 
 		e = (struct copygc_heap_entry) {
 			.dev		= iter.pos.inode,
 			.gen		= u.gen,
 			.replicas	= 1 + u.stripe_redundancy,
-			.fragmentation	= (u64) u.dirty_sectors * (1ULL << 31)
-				/ ca->mi.bucket_size,
+			.fragmentation	= (u64) u.dirty_sectors * (1ULL << 31) / bucket_size,
 			.sectors	= u.dirty_sectors,
 			.offset		= bucket_to_sector(ca, iter.pos.offset),
 		};
